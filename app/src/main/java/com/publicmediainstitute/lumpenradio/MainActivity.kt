@@ -1,8 +1,8 @@
 package com.publicmediainstitute.lumpenradio
 
+import android.media.MediaPlayer
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
@@ -12,7 +12,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         radioButton.setOnClickListener {
-            Toast.makeText(this, "Pressed button!", Toast.LENGTH_SHORT).show()
+            val mediaPlayer: MediaPlayer? = MediaPlayer.create(this, R.raw.lumpen_radio_audio_logo_nor)
+            mediaPlayer?.start() // no need to call prepare(); create() does that for you
         }
     }
 }
