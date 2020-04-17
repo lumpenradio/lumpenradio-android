@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Lumpen</string>
+    <string name="backgroundImageDescription">Houses the background of the app, including play and stop variations</string>
 </resources>
