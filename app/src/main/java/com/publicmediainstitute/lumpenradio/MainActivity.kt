@@ -13,6 +13,8 @@ class MainActivity : AppCompatActivity() {
 
     val LUMPEN_RADIO_URL = "http://mensajito.mx:8000/lumpen"
     var mediaPlayer: MediaPlayer? = null
+    var introMediaPlayer: MediaPlayer? = null
+    var radioReady = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,16 +31,18 @@ class MainActivity : AppCompatActivity() {
 
         radioButton.setOnClickListener {
             mediaPlayer?.let {
+                var drawable = R.drawable.background_off
                 if (it.isPlaying) {
                     // Stop radio
-                    backgroundImage.setImageDrawable(ContextCompat.getDrawable(
-                        applicationContext,
-                        R.drawable.background_off))
-                    it.stop()
-                    it.reset()
-                    it.release()
-                    mediaPlayer = null
+                    it.pause()
+                } else {
+                    drawable = R.drawable.background_on
+                    it.start()
                 }
+
+                backgroundImage.setImageDrawable(ContextCompat.getDrawable(
+                    applicationContext,
+                    drawable))
             } ?: run {
                 prepareRadio(preferences)
             }
@@ -46,44 +50,40 @@ class MainActivity : AppCompatActivity() {
     }
 
     // Check if Intro audio must be played and also prep internet feed
-    private fun prepareRadio(preferences: SharedPreferences): Unit? {
+    private fun prepareRadio(preferences: SharedPreferences) {
         radioButton.isClickable = false
 
-        return if (!preferences.getBoolean(
+        // Play intro if it needs to be played
+        if (!preferences.getBoolean(
                 getString(R.string.preferences_played_intro),
-                false
-            )
-        ) {
-            val mediaPlayer: MediaPlayer? =
+                false)) {
+            introMediaPlayer =
                 MediaPlayer.create(this, R.raw.lumpen_radio_audio_logo_nor)
-            mediaPlayer?.setOnCompletionListener {
+            introMediaPlayer?.setOnCompletionListener {
                 // Set preference that intro was played
                 with(preferences.edit()) {
                     this.putBoolean(getString(R.string.preferences_played_intro), true)
                     apply()
                 }
-                startRadio()
                 it.reset()
                 it.release()
+                introMediaPlayer = null
+                playRadio()
             }
-            mediaPlayer?.start()
-        } else {
-            startRadio()
+            introMediaPlayer?.start()
         }
+
+        createAndStartLumpen()
     }
 
     // Starts the radio
-    private fun startRadio() {
-
+    private fun createAndStartLumpen() {
         mediaPlayer = MediaPlayer().apply {
             setAudioStreamType(AudioManager.STREAM_MUSIC)
             setDataSource(LUMPEN_RADIO_URL)
             setOnPreparedListener {
-                radioButton.isClickable = true
-                backgroundImage.setImageDrawable(ContextCompat.getDrawable(
-                    applicationContext,
-                    R.drawable.background_on))
-                it.start()
+                radioReady = true
+                playRadio()
             }
             prepareAsync()
         }
@@ -98,5 +98,17 @@ class MainActivity : AppCompatActivity() {
 
         ))
          */
+    }
+
+    private fun playRadio() {
+        if (introMediaPlayer == null && radioReady) {
+            mediaPlayer?.let {
+                radioButton.isClickable = true
+                backgroundImage.setImageDrawable(ContextCompat.getDrawable(
+                    applicationContext,
+                    R.drawable.background_on))
+                it.start()
+            }
+        }
     }
 }
