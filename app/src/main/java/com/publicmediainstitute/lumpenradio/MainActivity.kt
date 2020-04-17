@@ -18,22 +18,45 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         radioButton.setOnClickListener {
-            radioButton.isClickable = false
-            val mediaPlayer: MediaPlayer? = MediaPlayer.create(this, R.raw.lumpen_radio_audio_logo_nor)
-            mediaPlayer?.start() // no need to call prepare(); create() does that for you
-            mediaPlayer?.setOnCompletionListener {
-                startRadio()
+            mediaPlayer?.let {
+                if (it.isPlaying) {
+                    // Stop radio
+                    backgroundImage.setImageDrawable(ContextCompat.getDrawable(
+                        applicationContext,
+                        R.drawable.background_off))
+                    it.stop()
+                    it.reset()
+                    it.release()
+                    mediaPlayer = null
+                }
+            } ?: run {
+                radioButton.isClickable = false
+                val mediaPlayer: MediaPlayer? =
+                    MediaPlayer.create(this, R.raw.lumpen_radio_audio_logo_nor)
+                mediaPlayer?.start() // no need to call prepare(); create() does that for you
+                mediaPlayer?.setOnCompletionListener {
+                    startRadio()
+                    it.reset()
+                    it.release()
+                }
             }
         }
     }
 
     private fun startRadio() {
-        radioButton.isClickable = true
-        backgroundImage.setImageDrawable(ContextCompat.getDrawable(
-            this,
-            R.drawable.background_on))
 
-        mediaPlayer = MediaPlayer()
+        mediaPlayer = MediaPlayer().apply {
+            setAudioStreamType(AudioManager.STREAM_MUSIC)
+            setDataSource(LUMPEN_RADIO_URL)
+            setOnPreparedListener {
+                radioButton.isClickable = true
+                backgroundImage.setImageDrawable(ContextCompat.getDrawable(
+                    applicationContext,
+                    R.drawable.background_on))
+                it.start()
+            }
+            prepareAsync()
+        }
 
         // TODO: May want to version check and use AudioAttributes
         /*
@@ -45,11 +68,5 @@ class MainActivity : AppCompatActivity() {
 
         ))
          */
-        mediaPlayer?.setAudioStreamType(AudioManager.STREAM_MUSIC)
-        mediaPlayer?.setDataSource(LUMPEN_RADIO_URL)
-        mediaPlayer?.setOnPreparedListener {
-            it.start()
-        }
-        mediaPlayer?.prepareAsync()
     }
 }
