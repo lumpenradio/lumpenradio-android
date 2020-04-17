@@ -1,6 +1,7 @@
 package com.publicmediainstitute.lumpenradio
 
-import android.media.AudioAttributes
+import android.content.Context
+import android.content.SharedPreferences
 import android.media.AudioManager
 import android.media.MediaPlayer
 import androidx.appcompat.app.AppCompatActivity
@@ -17,6 +18,15 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Reset preferences
+        val preferences = getSharedPreferences(
+            getString(R.string.preference_key),
+            Context.MODE_PRIVATE)
+        with (preferences.edit()) {
+            this.putBoolean(getString(R.string.preferences_played_intro), false)
+            apply()
+        }
+
         radioButton.setOnClickListener {
             mediaPlayer?.let {
                 if (it.isPlaying) {
@@ -30,19 +40,39 @@ class MainActivity : AppCompatActivity() {
                     mediaPlayer = null
                 }
             } ?: run {
-                radioButton.isClickable = false
-                val mediaPlayer: MediaPlayer? =
-                    MediaPlayer.create(this, R.raw.lumpen_radio_audio_logo_nor)
-                mediaPlayer?.start() // no need to call prepare(); create() does that for you
-                mediaPlayer?.setOnCompletionListener {
-                    startRadio()
-                    it.reset()
-                    it.release()
-                }
+                prepareRadio(preferences)
             }
         }
     }
 
+    // Check if Intro audio must be played and also prep internet feed
+    private fun prepareRadio(preferences: SharedPreferences): Unit? {
+        radioButton.isClickable = false
+
+        return if (!preferences.getBoolean(
+                getString(R.string.preferences_played_intro),
+                false
+            )
+        ) {
+            val mediaPlayer: MediaPlayer? =
+                MediaPlayer.create(this, R.raw.lumpen_radio_audio_logo_nor)
+            mediaPlayer?.setOnCompletionListener {
+                // Set preference that intro was played
+                with(preferences.edit()) {
+                    this.putBoolean(getString(R.string.preferences_played_intro), true)
+                    apply()
+                }
+                startRadio()
+                it.reset()
+                it.release()
+            }
+            mediaPlayer?.start()
+        } else {
+            startRadio()
+        }
+    }
+
+    // Starts the radio
     private fun startRadio() {
 
         mediaPlayer = MediaPlayer().apply {
