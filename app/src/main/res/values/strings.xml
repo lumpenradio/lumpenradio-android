@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Lumpen</string>
+    <string name="backgroundImageDescription">Houses the background of the app, including play and stop variations</string>
+    
+    <!-- Shared Preferences Key -->
+    <string name="preference_key">com.publicmediainstitute.lumpen.preferencekey</string>
+    <string name="preferences_played_intro">playedIntro</string>
 </resources>
