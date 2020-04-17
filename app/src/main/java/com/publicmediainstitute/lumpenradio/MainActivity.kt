@@ -30,22 +30,43 @@ class MainActivity : AppCompatActivity() {
         }
 
         radioButton.setOnClickListener {
-            mediaPlayer?.let {
-                var drawable = R.drawable.background_off
-                if (it.isPlaying) {
-                    // Stop radio
-                    it.pause()
-                } else {
-                    drawable = R.drawable.background_on
-                    it.start()
-                }
+            radioButtonClicked()
+        }
+    }
 
-                backgroundImage.setImageDrawable(ContextCompat.getDrawable(
-                    applicationContext,
-                    drawable))
-            } ?: run {
-                prepareRadio(preferences)
+    private fun radioButtonClicked() {
+        val preferences = getSharedPreferences(
+            getString(R.string.preference_key),
+            Context.MODE_PRIVATE)
+
+        mediaPlayer?.let {
+            var drawable = R.drawable.background_off
+            if (it.isPlaying) {
+                // Stop radio and start a new instance to get latest feed when user is ready
+                it.stop()
+                radioReady = false
+                createAndStartLumpen(true)
+            } else {
+                if(radioReady) {
+                    it.start()
+                    drawable = R.drawable.background_on
+                } else {
+                    radioButton.isClickable = false
+                    it.setOnPreparedListener { player ->
+                        backgroundImage.setImageDrawable(ContextCompat.getDrawable(
+                            applicationContext,
+                            R.drawable.background_on))
+                        radioButton.isClickable = true
+                        player.start()
+                    }
+                }
             }
+
+            backgroundImage.setImageDrawable(ContextCompat.getDrawable(
+                applicationContext,
+                drawable))
+        } ?: run {
+            prepareRadio(preferences)
         }
     }
 
@@ -77,13 +98,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     // Starts the radio
-    private fun createAndStartLumpen() {
+    private fun createAndStartLumpen(preprocessing: Boolean = false) {
         mediaPlayer = MediaPlayer().apply {
             setAudioStreamType(AudioManager.STREAM_MUSIC)
             setDataSource(LUMPEN_RADIO_URL)
             setOnPreparedListener {
                 radioReady = true
-                playRadio()
+                if (!preprocessing) {
+                    playRadio()
+                }
             }
             prepareAsync()
         }
