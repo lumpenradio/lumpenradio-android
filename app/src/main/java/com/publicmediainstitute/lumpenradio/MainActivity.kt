@@ -49,6 +49,7 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
 
+        return
         // Start the notification
         mediaPlayer?.let {
             if (it.isPlaying) {
@@ -63,6 +64,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
 
         // TODO: Clear the notification
+        // TODO: Sync icon with radio state (on or off)
     }
 
     private fun radioButtonClicked() {
