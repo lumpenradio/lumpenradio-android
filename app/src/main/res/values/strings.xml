@@ -5,4 +5,10 @@
     <!-- Shared Preferences Key -->
     <string name="preference_key">com.publicmediainstitute.lumpen.preferencekey</string>
     <string name="preferences_played_intro">playedIntro</string>
+
+    <!-- Notification Content -->
+    <string name="notification_content_text">Lumpen Radio Controls</string>
+    <string name="notification_channel_name">com.publicmediainstitute.lumpenradio.notificationchannel</string>
+    <string name="notification_channel_id">com.publicmediainstitute.lumpenradio.notificationchannel.id</string>
+    <string name="notification_channel_description">For turning on and off the Lumpen Radio stream</string>
 </resources>
