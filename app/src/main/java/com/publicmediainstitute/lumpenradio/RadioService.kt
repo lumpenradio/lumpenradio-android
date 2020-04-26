@@ -1,80 +1,167 @@
 package com.publicmediainstitute.lumpenradio
 
-import android.app.IntentService
+import android.app.*
 import android.content.Intent
 import android.content.Context
+import android.media.AudioManager
+import android.media.MediaPlayer
+import android.os.*
+import android.util.Log
+import androidx.annotation.RequiresApi
+import androidx.core.app.NotificationCompat
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 
 private const val ACTION_RADIO_START = "com.publicmediainstitute.lumpenradio.action.START_RADIO"
 private const val ACTION_RADIO_STOP = "com.publicmediainstitute.lumpenradio.action.STOP_RADIO"
-
-// TODO: Rename parameters
-private const val EXTRA_PARAM1 = "com.publicmediainstitute.lumpenradio.extra.PARAM1"
-private const val EXTRA_PARAM2 = "com.publicmediainstitute.lumpenradio.extra.PARAM2"
 
 /**
  * Lumpen Radio service to control the radio and let it play on the foreground
  * Reference: https://developer.android.com/guide/components/services
  */
-class RadioService : IntentService("RadioService") {
+class RadioService : Service() {
+    val notificationId = 2020
 
-    override fun onHandleIntent(intent: Intent?) {
-        when (intent?.action) {
-            ACTION_RADIO_START -> {
-                handleRadioStartAction()
+    private var serviceLooper: Looper? = null
+    private var serviceHandler: ServiceHandler? = null
+
+    // Handler that receives messages from the thread
+    private inner class ServiceHandler(looper: Looper) : Handler(looper) {
+
+        override fun handleMessage(msg: Message) {
+            var stoppedRadio = false
+            lumpenRadioPlayerModel.mediaPlayer.value?.let {
+                if (it.isPlaying) {
+                    stopSelf()
+                    stoppedRadio = true
+                }
             }
-            ACTION_RADIO_STOP -> {
-                handleRadioStopAction()
+
+            if (!stoppedRadio) {
+                prepAndStartRadio()
             }
         }
     }
 
-    /**
-     * Handles starting the radio
-     */
-    private fun handleRadioStartAction() {
-        TODO("Handle action Foo")
+    override fun onBind(intent: Intent?): IBinder? {
+        return null
+    }
+
+    override fun onCreate() {
+        HandlerThread("ServiceStartArguments", Process.THREAD_PRIORITY_BACKGROUND).apply {
+            start()
+
+            // Get the HandlerThread's Looper and use it for our Handler
+            serviceLooper = looper
+            serviceHandler = ServiceHandler(looper)
+        }
+    }
+
+    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+
+        // For each start request, send a message to start a job and deliver the
+        // start ID so we know which request we're stopping when we finish the job
+        serviceHandler?.obtainMessage()?.also { msg ->
+            msg.arg1 = startId
+            serviceHandler?.sendMessage(msg)
+        }
+
+        // If we get killed, after returning from here, restart
+        return START_STICKY
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        lumpenRadioPlayerModel.tearDownMediaPlayer()
+    }
+
+    private fun getChannelId(): String {
+        return getString(R.string.notification_channel_id)
     }
 
     /**
-     * Handles stopping the radio
+     * Create a notification channel. Only used in Android 8.0+
+     * Reference: https://developer.android.com/training/notify-user/build-notification
      */
-    private fun handleRadioStopAction() {
-        TODO("Handle action Baz")
+    private fun createNotificationChannel() {
+        val name = getString(R.string.notification_channel_name)
+        val descriptionText = getString(R.string.notification_channel_description)
+        val importance = NotificationManager.IMPORTANCE_DEFAULT
+        val channel = NotificationChannel(getChannelId(), name, importance).apply {
+            description = descriptionText
+        }
+        // Register the channel with the system
+        val notificationManger: NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManger.createNotificationChannel(channel)
+    }
+
+    /**
+     * Creates a notification for user to interact with for controlling the radio
+     */
+    private fun constructNotification(): Notification {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+
+        val pendingIntent: PendingIntent = PendingIntent.getActivity(this,
+            0,
+            intent,
+            0)
+
+        val builder = NotificationCompat.Builder(this, getChannelId())
+            .setSmallIcon(R.drawable.ic_launcher_background)
+            .setContentTitle(getString(R.string.app_name))
+            .setContentText(getString(R.string.notification_content_text))
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+
+        return builder.build()
+    }
+
+    // Starts the radio
+    private fun prepAndStartRadio() {
+        lumpenRadioPlayerModel.constructMediaPlayerAndStart()
+        // TODO: May want to version check and use AudioAttributes
+        /*
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.CONTENT_TYPE_MUSIC)
+            .build()
+        mediaPlayer?.setAudioAttributes(AudioAttributes(
+            ,
+
+        ))
+         */
+    }
+    class LumpenMediaPlayerModel : ViewModel() {
+        val LUMPEN_RADIO_URL = "http://mensajito.mx:8000/lumpen"
+
+        val mediaPlayer: MutableLiveData<MediaPlayer> = MutableLiveData()
+        var radioIsPlaying: MutableLiveData<Boolean> = MutableLiveData()
+
+        fun constructMediaPlayerAndStart() {
+            mediaPlayer.postValue(MediaPlayer().apply {
+                setAudioStreamType(AudioManager.STREAM_MUSIC)
+                setDataSource(LUMPEN_RADIO_URL)
+                setOnPreparedListener {
+                    it.start()
+                    Log.d("RadioService", "Radio ready! Playing..")
+                    radioIsPlaying.postValue(true)
+                }
+                prepare()
+            })
+        }
+
+        fun tearDownMediaPlayer() {
+            mediaPlayer.value?.stop()
+            mediaPlayer.value?.release()
+            mediaPlayer.postValue(null)
+            radioIsPlaying.postValue(false)
+        }
     }
 
     companion object {
-        /**
-         * Starts this service to perform action Foo with the given parameters. If
-         * the service is already performing a task this action will be queued.
-         *
-         * @see IntentService
-         */
-        // TODO: Customize helper method
-        @JvmStatic
-        fun startActionFoo(context: Context, param1: String, param2: String) {
-            val intent = Intent(context, RadioService::class.java).apply {
-                action = ACTION_RADIO_START
-                putExtra(EXTRA_PARAM1, param1)
-                putExtra(EXTRA_PARAM2, param2)
-            }
-            context.startService(intent)
-        }
-
-        /**
-         * Starts this service to perform action Baz with the given parameters. If
-         * the service is already performing a task this action will be queued.
-         *
-         * @see IntentService
-         */
-        // TODO: Customize helper method
-        @JvmStatic
-        fun startActionBaz(context: Context, param1: String, param2: String) {
-            val intent = Intent(context, RadioService::class.java).apply {
-                action = ACTION_RADIO_STOP
-                putExtra(EXTRA_PARAM1, param1)
-                putExtra(EXTRA_PARAM2, param2)
-            }
-            context.startService(intent)
-        }
+        // The media player to stream lumpen on
+        var lumpenRadioPlayerModel = LumpenMediaPlayerModel()
     }
 }
