@@ -12,8 +12,8 @@ import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
 
-    var introMediaPlayer: MediaPlayer? = null
-    val playIntroWithPreferences = false
+    private var introMediaPlayer: MediaPlayer? = null
+    private val playIntroWithPreferences = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

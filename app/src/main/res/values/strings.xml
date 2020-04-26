@@ -7,7 +7,7 @@
     <string name="preferences_played_intro">playedIntro</string>
 
     <!-- Notification Content -->
-    <string name="notification_content_text">Lumpen Radio Controls</string>
+    <string name="notification_content_text">Click to return to Lumpen</string>
     <string name="notification_channel_name">com.publicmediainstitute.lumpenradio.notificationchannel</string>
     <string name="notification_channel_id">com.publicmediainstitute.lumpenradio.notificationchannel.id</string>
     <string name="notification_channel_description">Tap to stop the radio stream</string>

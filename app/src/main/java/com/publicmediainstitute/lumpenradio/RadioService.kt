@@ -8,6 +8,7 @@ import android.media.MediaPlayer
 import android.os.*
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 
@@ -32,8 +33,15 @@ class RadioService : Service() {
 
             if (stopRadio) {
                 stopSelf()
+                with(NotificationManagerCompat.from(applicationContext)) {
+                    cancel(notificationId)
+                }
             } else {
                 lumpenRadioPlayerModel.constructMediaPlayerAndStart()
+                createNotificationChannel()
+                with(NotificationManagerCompat.from(applicationContext)) {
+                    notify(notificationId, constructNotification())
+                }
             }
         }
     }
@@ -94,14 +102,12 @@ class RadioService : Service() {
      * Creates a notification for user to interact with for controlling the radio
      */
     private fun constructNotification(): Notification {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
+        val intent = Intent(this, MainActivity::class.java)
 
-        val pendingIntent: PendingIntent = PendingIntent.getActivity(this,
-            0,
-            intent,
-            0)
+        val pendingIntent: PendingIntent? = TaskStackBuilder.create(this).run {
+            addNextIntentWithParentStack(intent)
+            getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT)
+        }
 
         val builder = NotificationCompat.Builder(this, getChannelId())
             .setSmallIcon(R.drawable.ic_launcher_background)
@@ -115,7 +121,7 @@ class RadioService : Service() {
     }
 
     class LumpenMediaPlayerModel : ViewModel() {
-        val LUMPEN_RADIO_URL = "http://mensajito.mx:8000/lumpen"
+        private val LUMPEN_RADIO_URL = "http://mensajito.mx:8000/lumpen"
 
         val mediaPlayer: MutableLiveData<MediaPlayer> = MutableLiveData()
         val radioIsPlaying: MutableLiveData<Boolean> = MutableLiveData()
@@ -130,6 +136,7 @@ class RadioService : Service() {
                     it.start()
                     Log.d("RadioService", "Radio ready! Playing..")
                     radioIsPlaying.postValue(true)
+                    radioIsSettingUp.postValue(false)
                 }
                 // TODO: May want to version check and use AudioAttributes
                 /*
