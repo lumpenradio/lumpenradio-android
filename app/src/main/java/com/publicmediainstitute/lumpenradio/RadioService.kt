@@ -4,9 +4,11 @@ import android.app.*
 import android.content.Intent
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.*
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.MutableLiveData
@@ -38,9 +40,13 @@ class RadioService : Service() {
                 }
             } else {
                 lumpenRadioPlayerModel.constructMediaPlayerAndStart()
-                createNotificationChannel()
+                var createdNotificationChannel = false;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    createNotificationChannel()
+                    createdNotificationChannel = true
+                }
                 with(NotificationManagerCompat.from(applicationContext)) {
-                    notify(notificationId, constructNotification())
+                    notify(notificationId, constructNotification(createdNotificationChannel))
                 }
             }
         }
@@ -86,6 +92,7 @@ class RadioService : Service() {
      * Create a notification channel. Only used in Android 8.0+
      * Reference: https://developer.android.com/training/notify-user/build-notification
      */
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel() {
         val name = getString(R.string.notification_channel_name)
         val descriptionText = getString(R.string.notification_channel_description)
@@ -101,7 +108,7 @@ class RadioService : Service() {
     /**
      * Creates a notification for user to interact with for controlling the radio
      */
-    private fun constructNotification(): Notification {
+    private fun constructNotification(createdNotificationChannel: Boolean): Notification {
         val intent = Intent(this, MainActivity::class.java)
         intent.putExtra(MainActivity.EXTRA_NOTIFICATION_ENTRY, true)
 
@@ -131,9 +138,15 @@ class RadioService : Service() {
         fun constructMediaPlayerAndStart() {
             radioIsSettingUp.postValue(true)
             mediaPlayer.postValue(MediaPlayer().apply {
-                setAudioAttributes(AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .build())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    setAudioAttributes(AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .build())
+                } else {
+                    setAudioStreamType(AudioManager.STREAM_MUSIC)
+                    setDataSource(lumpenRadioURL)
+                }
+
                 setDataSource(lumpenRadioURL)
                 setOnPreparedListener {
                     it.start()
