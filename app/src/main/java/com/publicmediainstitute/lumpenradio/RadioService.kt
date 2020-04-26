@@ -3,7 +3,7 @@ package com.publicmediainstitute.lumpenradio
 import android.app.*
 import android.content.Intent
 import android.content.Context
-import android.media.AudioManager
+import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.os.*
 import android.util.Log
@@ -122,7 +122,7 @@ class RadioService : Service() {
     }
 
     class LumpenMediaPlayerModel : ViewModel() {
-        private val LUMPEN_RADIO_URL = "http://mensajito.mx:8000/lumpen"
+        private val lumpenRadioURL = "http://mensajito.mx:8000/lumpen"
 
         val mediaPlayer: MutableLiveData<MediaPlayer> = MutableLiveData()
         val radioIsPlaying: MutableLiveData<Boolean> = MutableLiveData()
@@ -131,24 +131,16 @@ class RadioService : Service() {
         fun constructMediaPlayerAndStart() {
             radioIsSettingUp.postValue(true)
             mediaPlayer.postValue(MediaPlayer().apply {
-                setAudioStreamType(AudioManager.STREAM_MUSIC)
-                setDataSource(LUMPEN_RADIO_URL)
+                setAudioAttributes(AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .build())
+                setDataSource(lumpenRadioURL)
                 setOnPreparedListener {
                     it.start()
                     Log.d("RadioService", "Radio ready! Playing..")
                     radioIsPlaying.postValue(true)
                     radioIsSettingUp.postValue(false)
                 }
-                // TODO: May want to version check and use AudioAttributes
-                /*
-                val audioAttributes = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build()
-                mediaPlayer?.setAudioAttributes(AudioAttributes(
-                    ,
-
-                ))
-                 */
                 prepare()
             })
         }
