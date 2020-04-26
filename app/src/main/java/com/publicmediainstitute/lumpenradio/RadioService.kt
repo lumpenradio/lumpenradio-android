@@ -118,9 +118,11 @@ class RadioService : Service() {
         val LUMPEN_RADIO_URL = "http://mensajito.mx:8000/lumpen"
 
         val mediaPlayer: MutableLiveData<MediaPlayer> = MutableLiveData()
-        var radioIsPlaying: MutableLiveData<Boolean> = MutableLiveData()
+        val radioIsPlaying: MutableLiveData<Boolean> = MutableLiveData()
+        val radioIsSettingUp: MutableLiveData<Boolean> = MutableLiveData()
 
         fun constructMediaPlayerAndStart() {
+            radioIsSettingUp.postValue(true)
             mediaPlayer.postValue(MediaPlayer().apply {
                 setAudioStreamType(AudioManager.STREAM_MUSIC)
                 setDataSource(LUMPEN_RADIO_URL)

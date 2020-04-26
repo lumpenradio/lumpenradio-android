@@ -13,6 +13,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 class MainActivity : AppCompatActivity() {
 
     var introMediaPlayer: MediaPlayer? = null
+    val playIntroWithPreferences = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,14 +32,27 @@ class MainActivity : AppCompatActivity() {
             prepareRadio()
         }
 
+        registerObservers()
+    }
+
+    private fun registerObservers() {
         val radioIsPlayingObserver = Observer<Boolean> { isPlaying ->
             updateButtonState(isPlaying)
+            radioButton.isClickable = true
         }
 
         RadioService.lumpenRadioPlayerModel.radioIsPlaying.observe(this, radioIsPlayingObserver)
+
+        val radioIsSettingUp = Observer<Boolean> { isSettingUp ->
+            if (isSettingUp) {
+                playIntroIfNeeded()
+            }
+        }
+
+        RadioService.lumpenRadioPlayerModel.radioIsSettingUp.observe(this, radioIsSettingUp)
     }
 
-    private fun startRadioService() {
+    private fun callRadioService() {
         Intent(this, RadioService::class.java).also { intent ->
             startService(intent)
         }
@@ -63,32 +77,45 @@ class MainActivity : AppCompatActivity() {
 
     // Check if Intro audio must be played and also prep internet feed
     private fun prepareRadio() {
-        val preferences = getSharedPreferences(
-            getString(R.string.preference_key),
-            Context.MODE_PRIVATE)
+        radioButton.isClickable = false
+        callRadioService()
+    }
 
-        // Play intro if it needs to be played
-        if (!preferences.getBoolean(
-                getString(R.string.preferences_played_intro),
-                false)) {
-            introMediaPlayer =
-                MediaPlayer.create(this, R.raw.lumpen_radio_audio_logo_nor)
-            introMediaPlayer?.setOnCompletionListener {
-                // Set preference that intro was played
-                with(preferences.edit()) {
-                    this.putBoolean(getString(R.string.preferences_played_intro), true)
-                    apply()
+    private fun playIntroIfNeeded() {
+        introMediaPlayer =
+            MediaPlayer.create(this, R.raw.lumpen_radio_audio_logo_nor)
+
+        if (playIntroWithPreferences) {
+            val preferences = getSharedPreferences(
+                getString(R.string.preference_key),
+                Context.MODE_PRIVATE
+            )
+
+            // Play intro if it needs to be played
+            if (!preferences.getBoolean(
+                    getString(R.string.preferences_played_intro),
+                    false
+                )
+            ) {
+                introMediaPlayer?.setOnCompletionListener {
+                    // Set preference that intro was played
+                    with(preferences.edit()) {
+                        this.putBoolean(getString(R.string.preferences_played_intro), true)
+                        apply()
+                    }
+                    it.reset()
+                    it.release()
+                    introMediaPlayer = null
                 }
+                introMediaPlayer?.start()
+            }
+        } else {
+            introMediaPlayer?.setOnCompletionListener {
                 it.reset()
                 it.release()
                 introMediaPlayer = null
-                backgroundImage.setImageDrawable(ContextCompat.getDrawable(
-                    applicationContext,
-                    R.drawable.background_on))
             }
             introMediaPlayer?.start()
         }
-
-        startRadioService()
     }
 }
