@@ -31,15 +31,6 @@ class MainActivity : AppCompatActivity() {
             prepareRadio()
         }
 
-        /*
-        val mediaPlayerObserver = Observer<MediaPlayer> { player ->
-            updateButtonState(player != null && player.isPlaying)
-        }
-
-        RadioService.lumpenRadioPlayerModel.mediaPlayer.observe(this, mediaPlayerObserver)
-
-         */
-
         val radioIsPlayingObserver = Observer<Boolean> { isPlaying ->
             updateButtonState(isPlaying)
         }
@@ -51,17 +42,6 @@ class MainActivity : AppCompatActivity() {
         Intent(this, RadioService::class.java).also { intent ->
             startService(intent)
         }
-    }
-
-    override fun onPause() {
-        super.onPause()
-    }
-
-    override fun onResume() {
-        super.onResume()
-
-        // TODO: Clear the notification
-        // TODO: Sync icon with radio state (on or off)
     }
 
     /**

@@ -7,13 +7,9 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.*
 import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-
-private const val ACTION_RADIO_START = "com.publicmediainstitute.lumpenradio.action.START_RADIO"
-private const val ACTION_RADIO_STOP = "com.publicmediainstitute.lumpenradio.action.STOP_RADIO"
 
 /**
  * Lumpen Radio service to control the radio and let it play on the foreground
@@ -29,16 +25,15 @@ class RadioService : Service() {
     private inner class ServiceHandler(looper: Looper) : Handler(looper) {
 
         override fun handleMessage(msg: Message) {
-            var stoppedRadio = false
+            var stopRadio = false
             lumpenRadioPlayerModel.mediaPlayer.value?.let {
-                if (it.isPlaying) {
-                    stopSelf()
-                    stoppedRadio = true
-                }
+                stopRadio = it.isPlaying
             }
 
-            if (!stoppedRadio) {
-                prepAndStartRadio()
+            if (stopRadio) {
+                stopSelf()
+            } else {
+                lumpenRadioPlayerModel.constructMediaPlayerAndStart()
             }
         }
     }
@@ -119,20 +114,6 @@ class RadioService : Service() {
         return builder.build()
     }
 
-    // Starts the radio
-    private fun prepAndStartRadio() {
-        lumpenRadioPlayerModel.constructMediaPlayerAndStart()
-        // TODO: May want to version check and use AudioAttributes
-        /*
-        val audioAttributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.CONTENT_TYPE_MUSIC)
-            .build()
-        mediaPlayer?.setAudioAttributes(AudioAttributes(
-            ,
-
-        ))
-         */
-    }
     class LumpenMediaPlayerModel : ViewModel() {
         val LUMPEN_RADIO_URL = "http://mensajito.mx:8000/lumpen"
 
@@ -148,6 +129,16 @@ class RadioService : Service() {
                     Log.d("RadioService", "Radio ready! Playing..")
                     radioIsPlaying.postValue(true)
                 }
+                // TODO: May want to version check and use AudioAttributes
+                /*
+                val audioAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build()
+                mediaPlayer?.setAudioAttributes(AudioAttributes(
+                    ,
+
+                ))
+                 */
                 prepare()
             })
         }
