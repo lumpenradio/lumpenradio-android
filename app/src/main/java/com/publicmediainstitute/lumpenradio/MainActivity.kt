@@ -1,20 +1,23 @@
 package com.publicmediainstitute.lumpenradio
 
 import android.content.Context
-import android.content.SharedPreferences
-import android.media.AudioManager
+import android.content.Intent
 import android.media.MediaPlayer
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Observer
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
 
-    val LUMPEN_RADIO_URL = "http://mensajito.mx:8000/lumpen"
-    var mediaPlayer: MediaPlayer? = null
-    var introMediaPlayer: MediaPlayer? = null
-    var radioReady = false
+    private var introMediaPlayer: MediaPlayer? = null
+    private val playIntroWithPreferences = false
+
+    companion object {
+        val EXTRA_NOTIFICATION_ENTRY = "com.publicmediainstitute.lumpen.mainactivity.extra.notificationentry"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,108 +33,98 @@ class MainActivity : AppCompatActivity() {
         }
 
         radioButton.setOnClickListener {
-            radioButtonClicked()
+            prepareRadio()
+        }
+
+        registerObservers()
+
+        // Check if user entered from notification
+        if (intent.hasExtra(EXTRA_NOTIFICATION_ENTRY)) {
+            callRadioService()
         }
     }
 
-    private fun radioButtonClicked() {
-        val preferences = getSharedPreferences(
-            getString(R.string.preference_key),
-            Context.MODE_PRIVATE)
-
-        mediaPlayer?.let {
-            var drawable = R.drawable.background_off
-            if (it.isPlaying) {
-                // Stop radio and start a new instance to get latest feed when user is ready
-                it.stop()
-                radioReady = false
-                createAndStartLumpen(true)
-            } else {
-                if(radioReady) {
-                    it.start()
-                    drawable = R.drawable.background_on
-                } else {
-                    radioButton.isClickable = false
-                    it.setOnPreparedListener { player ->
-                        backgroundImage.setImageDrawable(ContextCompat.getDrawable(
-                            applicationContext,
-                            R.drawable.background_on))
-                        radioButton.isClickable = true
-                        player.start()
-                    }
-                }
-            }
-
-            backgroundImage.setImageDrawable(ContextCompat.getDrawable(
-                applicationContext,
-                drawable))
-        } ?: run {
-            prepareRadio(preferences)
+    private fun registerObservers() {
+        val radioIsPlayingObserver = Observer<Boolean> { isPlaying ->
+            updateButtonState(isPlaying)
+            radioButton.isClickable = true
         }
+
+        RadioService.lumpenRadioPlayerModel.radioIsPlaying.observe(this, radioIsPlayingObserver)
+
+        val radioIsSettingUp = Observer<Boolean> { isSettingUp ->
+            if (isSettingUp) {
+                playIntroIfNeeded()
+            }
+        }
+
+        RadioService.lumpenRadioPlayerModel.radioIsSettingUp.observe(this, radioIsSettingUp)
+    }
+
+    private fun callRadioService() {
+        Intent(this, RadioService::class.java).also { intent ->
+            startService(intent)
+        }
+    }
+
+    /**
+     * Checks to see if radio is playing or not, and updates the user button as needed
+     */
+    private fun updateButtonState(radioIsPlaying: Boolean) {
+        var backgroundResource = R.drawable.background_off
+
+        if (radioIsPlaying) {
+            backgroundResource = R.drawable.background_on
+            Log.d("MainActivity", "is on")
+        } else {
+            Log.d("MainActivity", "is off")
+        }
+        backgroundImage.setImageDrawable(ContextCompat.getDrawable(
+            applicationContext,
+            backgroundResource))
     }
 
     // Check if Intro audio must be played and also prep internet feed
-    private fun prepareRadio(preferences: SharedPreferences) {
+    private fun prepareRadio() {
         radioButton.isClickable = false
+        callRadioService()
+    }
 
-        // Play intro if it needs to be played
-        if (!preferences.getBoolean(
-                getString(R.string.preferences_played_intro),
-                false)) {
-            introMediaPlayer =
-                MediaPlayer.create(this, R.raw.lumpen_radio_audio_logo_nor)
-            introMediaPlayer?.setOnCompletionListener {
-                // Set preference that intro was played
-                with(preferences.edit()) {
-                    this.putBoolean(getString(R.string.preferences_played_intro), true)
-                    apply()
+    private fun playIntroIfNeeded() {
+        introMediaPlayer =
+            MediaPlayer.create(this, R.raw.lumpen_radio_audio_logo_nor)
+
+        if (playIntroWithPreferences) {
+            val preferences = getSharedPreferences(
+                getString(R.string.preference_key),
+                Context.MODE_PRIVATE
+            )
+
+            // Play intro if it needs to be played
+            if (!preferences.getBoolean(
+                    getString(R.string.preferences_played_intro),
+                    false
+                )
+            ) {
+                introMediaPlayer?.setOnCompletionListener {
+                    // Set preference that intro was played
+                    with(preferences.edit()) {
+                        this.putBoolean(getString(R.string.preferences_played_intro), true)
+                        apply()
+                    }
+                    it.reset()
+                    it.release()
+                    introMediaPlayer = null
                 }
+                introMediaPlayer?.start()
+            }
+        } else {
+            introMediaPlayer?.setOnCompletionListener {
                 it.reset()
                 it.release()
                 introMediaPlayer = null
-                playRadio()
             }
             introMediaPlayer?.start()
-        }
-
-        createAndStartLumpen()
-    }
-
-    // Starts the radio
-    private fun createAndStartLumpen(preprocessing: Boolean = false) {
-        mediaPlayer = MediaPlayer().apply {
-            setAudioStreamType(AudioManager.STREAM_MUSIC)
-            setDataSource(LUMPEN_RADIO_URL)
-            setOnPreparedListener {
-                radioReady = true
-                if (!preprocessing) {
-                    playRadio()
-                }
-            }
-            prepareAsync()
-        }
-
-        // TODO: May want to version check and use AudioAttributes
-        /*
-        val audioAttributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.CONTENT_TYPE_MUSIC)
-            .build()
-        mediaPlayer?.setAudioAttributes(AudioAttributes(
-            ,
-
-        ))
-         */
-    }
-
-    private fun playRadio() {
-        if (introMediaPlayer == null && radioReady) {
-            mediaPlayer?.let {
-                radioButton.isClickable = true
-                backgroundImage.setImageDrawable(ContextCompat.getDrawable(
-                    applicationContext,
-                    R.drawable.background_on))
-                it.start()
-            }
         }
     }
 }
