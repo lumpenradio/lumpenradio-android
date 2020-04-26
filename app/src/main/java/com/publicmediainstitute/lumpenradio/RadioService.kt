@@ -112,7 +112,7 @@ class RadioService : Service() {
 
         val builder = NotificationCompat.Builder(this, getChannelId())
             .setSmallIcon(R.drawable.ic_launcher_background)
-            .setContentTitle(getString(R.string.app_name))
+            .setContentTitle(getString(R.string.notification_content_title))
             .setContentText(getString(R.string.notification_content_text))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
