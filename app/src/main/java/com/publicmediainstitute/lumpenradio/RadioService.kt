@@ -103,6 +103,7 @@ class RadioService : Service() {
      */
     private fun constructNotification(): Notification {
         val intent = Intent(this, MainActivity::class.java)
+        intent.putExtra(MainActivity.EXTRA_NOTIFICATION_ENTRY, true)
 
         val pendingIntent: PendingIntent? = TaskStackBuilder.create(this).run {
             addNextIntentWithParentStack(intent)

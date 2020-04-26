@@ -15,6 +15,10 @@ class MainActivity : AppCompatActivity() {
     private var introMediaPlayer: MediaPlayer? = null
     private val playIntroWithPreferences = false
 
+    companion object {
+        val EXTRA_NOTIFICATION_ENTRY = "com.publicmediainstitute.lumpen.mainactivity.extra.notificationentry"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -33,6 +37,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         registerObservers()
+
+        // Check if user entered from notification
+        if (intent.hasExtra(EXTRA_NOTIFICATION_ENTRY)) {
+            callRadioService()
+        }
     }
 
     private fun registerObservers() {
