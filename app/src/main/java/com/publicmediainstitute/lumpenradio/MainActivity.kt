@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity() {
 
         val radioIsSettingUp = Observer<Boolean> { isSettingUp ->
             if (isSettingUp) {
-                playIntroIfNeeded()
+                playIntro()
             }
         }
 
@@ -90,41 +90,15 @@ class MainActivity : AppCompatActivity() {
         callRadioService()
     }
 
-    private fun playIntroIfNeeded() {
+    private fun playIntro() {
         introMediaPlayer =
             MediaPlayer.create(this, R.raw.lumpen_radio_audio_logo_nor)
 
-        if (playIntroWithPreferences) {
-            val preferences = getSharedPreferences(
-                getString(R.string.preference_key),
-                Context.MODE_PRIVATE
-            )
-
-            // Play intro if it needs to be played
-            if (!preferences.getBoolean(
-                    getString(R.string.preferences_played_intro),
-                    false
-                )
-            ) {
-                introMediaPlayer?.setOnCompletionListener {
-                    // Set preference that intro was played
-                    with(preferences.edit()) {
-                        this.putBoolean(getString(R.string.preferences_played_intro), true)
-                        apply()
-                    }
-                    it.reset()
-                    it.release()
-                    introMediaPlayer = null
-                }
-                introMediaPlayer?.start()
-            }
-        } else {
-            introMediaPlayer?.setOnCompletionListener {
-                it.reset()
-                it.release()
-                introMediaPlayer = null
-            }
-            introMediaPlayer?.start()
+        introMediaPlayer?.setOnCompletionListener {
+            it.reset()
+            it.release()
+            introMediaPlayer = null
         }
+        introMediaPlayer?.start()
     }
 }
