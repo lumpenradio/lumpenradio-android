@@ -46,7 +46,7 @@ class RadioService : Service() {
                     createdNotificationChannel = true
                 }
                 with(NotificationManagerCompat.from(applicationContext)) {
-                    notify(notificationId, constructNotification(createdNotificationChannel))
+                    startForeground(notificationId, constructNotification(createdNotificationChannel))
                 }
             }
         }
