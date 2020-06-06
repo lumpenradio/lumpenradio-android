@@ -35,6 +35,10 @@ class RadioService : Service() {
 
             if (stopRadio) {
                 stopSelf()
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(0)
+                }
                 with(NotificationManagerCompat.from(applicationContext)) {
                     cancel(notificationId)
                 }
@@ -45,9 +49,8 @@ class RadioService : Service() {
                     createNotificationChannel()
                     createdNotificationChannel = true
                 }
-                with(NotificationManagerCompat.from(applicationContext)) {
-                    startForeground(notificationId, constructNotification(createdNotificationChannel))
-                }
+
+                startForeground(notificationId, constructNotification(createdNotificationChannel))
             }
         }
     }
