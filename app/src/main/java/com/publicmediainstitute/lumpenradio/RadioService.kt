@@ -132,7 +132,7 @@ class RadioService : Service() {
     }
 
     class LumpenMediaPlayerModel : ViewModel() {
-        private val lumpenRadioURL = "http://mensajito.mx:8000/lumpen"
+        private val lumpenRadioURL = "https://radio.mensajito.mx/lumpenradio"
 
         val mediaPlayer: MutableLiveData<MediaPlayer> = MutableLiveData()
         val radioIsPlaying: MutableLiveData<Boolean> = MutableLiveData()
