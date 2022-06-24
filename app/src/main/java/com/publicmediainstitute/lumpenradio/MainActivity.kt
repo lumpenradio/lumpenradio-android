@@ -6,16 +6,18 @@ import android.media.MediaPlayer
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.widget.ImageView
+import androidx.appcompat.widget.AppCompatButton
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
 import com.publicmediainstitute.lumpenradio.databinding.ActivityMainBinding
-import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private var introMediaPlayer: MediaPlayer? = null
-    private val playIntroWithPreferences = false
+    private lateinit var radioButton: AppCompatButton
+    private lateinit var backgroundImage: ImageView
 
     companion object {
         val EXTRA_NOTIFICATION_ENTRY = "com.publicmediainstitute.lumpen.mainactivity.extra.notificationentry"
@@ -27,6 +29,9 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+
+        radioButton = findViewById(R.id.radioButton)
+        backgroundImage = findViewById(R.id.backgroundImage)
 
         // Reset preferences
         val preferences = getSharedPreferences(
