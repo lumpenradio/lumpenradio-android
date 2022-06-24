@@ -8,10 +8,12 @@ import android.os.Bundle
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
+import com.publicmediainstitute.lumpenradio.databinding.ActivityMainBinding
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var binding: ActivityMainBinding
     private var introMediaPlayer: MediaPlayer? = null
     private val playIntroWithPreferences = false
 
@@ -21,12 +23,16 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        val view = binding.root
+        setContentView(view)
 
         // Reset preferences
         val preferences = getSharedPreferences(
             getString(R.string.preference_key),
             Context.MODE_PRIVATE)
+        
         with (preferences.edit()) {
             this.putBoolean(getString(R.string.preferences_played_intro), false)
             apply()
