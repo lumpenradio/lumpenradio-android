@@ -20,7 +20,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var backgroundImage: ImageView
 
     companion object {
-        val EXTRA_NOTIFICATION_ENTRY = "com.publicmediainstitute.lumpen.mainactivity.extra.notificationentry"
+        const val EXTRA_NOTIFICATION_ENTRY = "com.publicmediainstitute.lumpen.mainactivity.extra.notificationentry"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
