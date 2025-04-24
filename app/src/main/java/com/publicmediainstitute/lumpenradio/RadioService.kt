@@ -4,11 +4,9 @@ import android.app.*
 import android.content.Intent
 import android.content.Context
 import android.media.AudioAttributes
-import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.*
 import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.MutableLiveData
@@ -35,22 +33,14 @@ class RadioService : Service() {
 
             if (stopRadio) {
                 stopSelf()
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    stopForeground(0)
-                }
+                stopForeground(STOP_FOREGROUND_REMOVE)
                 with(NotificationManagerCompat.from(applicationContext)) {
                     cancel(notificationId)
                 }
             } else {
                 lumpenRadioPlayerModel.constructMediaPlayerAndStart()
-                var createdNotificationChannel = false;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    createNotificationChannel()
-                    createdNotificationChannel = true
-                }
-
-                startForeground(notificationId, constructNotification(createdNotificationChannel))
+                createNotificationChannel()
+                startForeground(notificationId, constructNotification())
             }
         }
     }
@@ -95,7 +85,6 @@ class RadioService : Service() {
      * Create a notification channel. Only used in Android 8.0+
      * Reference: https://developer.android.com/training/notify-user/build-notification
      */
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel() {
         val name = getString(R.string.notification_channel_name)
         val descriptionText = getString(R.string.notification_channel_description)
@@ -111,16 +100,13 @@ class RadioService : Service() {
     /**
      * Creates a notification for user to interact with for controlling the radio
      */
-    private fun constructNotification(createdNotificationChannel: Boolean): Notification {
+    private fun constructNotification(): Notification {
         val intent = Intent(this, MainActivity::class.java)
         intent.putExtra(MainActivity.EXTRA_NOTIFICATION_ENTRY, true)
 
         val pendingIntent: PendingIntent? = TaskStackBuilder.create(this).run {
             addNextIntentWithParentStack(intent)
-            var flags = PendingIntent.FLAG_UPDATE_CURRENT
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                flags = flags or PendingIntent.FLAG_IMMUTABLE
-            }
+            val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             getPendingIntent(0, flags)
         }
 
@@ -145,14 +131,9 @@ class RadioService : Service() {
         fun constructMediaPlayerAndStart() {
             radioIsSettingUp.postValue(true)
             mediaPlayer.postValue(MediaPlayer().apply {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    setAudioAttributes(AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .build())
-                } else {
-                    setAudioStreamType(AudioManager.STREAM_MUSIC)
-                    setDataSource(lumpenRadioURL)
-                }
+                setAudioAttributes(AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .build())
 
                 setDataSource(lumpenRadioURL)
                 setOnPreparedListener {
