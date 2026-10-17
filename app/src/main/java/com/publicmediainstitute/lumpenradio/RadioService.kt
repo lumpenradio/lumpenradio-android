@@ -149,7 +149,6 @@ class RadioService : Service() {
         fun tearDownMediaPlayer() {
             mediaPlayer.value?.stop()
             mediaPlayer.value?.release()
-            mediaPlayer.postValue(null)
             radioIsPlaying.postValue(false)
         }
     }
